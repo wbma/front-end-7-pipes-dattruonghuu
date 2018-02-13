@@ -1,44 +1,68 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs/Observable';
-import { MediaFile } from '../models/media-file';
-import { User } from '../models/user';
+import {HttpClient, HttpErrorResponse, HttpHeaders} from '@angular/common/http';
+import {Router} from '@angular/router';
+import {User} from '../interfaces/user';
 
 @Injectable()
 export class MediaService {
 
-  private baseUrl = 'http://media.mw.metropolia.fi/wbma';
-  public  loggedIn: boolean;
+  username: string;
+  password: string;
+  apiUrl = 'http://media.mw.metropolia.fi/wbma';
+  mediaUrl = 'http://media.mw.metropolia.fi/wbma/uploads/';
+  status: string;
+  file: File;
+  title: string;
+  description: string;
 
-  constructor(private http: HttpClient) { }
-
-  /**
-   * Get a list of new files
-   * (http://media.mw.metropolia.fi/wbma/docs/#api-Media-GetMediaFiles)
-   *
-   * @param {number} limit
-   * @returns {Observable<MediaFile[]>}
-   */
-  public getFiles(limit: number): Observable<MediaFile[]> {
-    // TODO: limit the amount of response's mediafiles based on value of the limit variable
-    return this.http.get<MediaFile[]>(this.baseUrl + '/media');
+  constructor(private http: HttpClient, private router: Router) {
   }
 
-  /**
-   * Login
-   *
-   * @param {User} user
-   * @returns {Observable<any>}
-   */
-  public login(user: User): Observable<any> {
-    interface LoginResponse {
-      message: string;
-      token: string;
-      user: User;
-    }
-    return this.http.post<LoginResponse>(this.baseUrl + '/login', user);
+  public login() {
+    const body = {
+      username: this.username,
+      password: this.password
+    };
+
+    const settings = {
+      headers: new HttpHeaders().set('Content-Type', 'application/json')
+    };
+
+    this.http.post(this.apiUrl + '/login', body, settings).subscribe(response => {
+      localStorage.setItem('token', response['token']);
+      this.router.navigate(['front']);
+    }, (error: HttpErrorResponse) => {
+      this.status = error.error.message;
+    });
   }
 
-  //Todo: method for validating token
+  public register(user: User) {
+    const settings = {
+      headers: new HttpHeaders().set('Content-Type', 'application/json')
+    };
+    return this.http.post(this.apiUrl + '/users', user, settings);
+  }
 
+  public startUpload(formData: FormData) {
+    const settings = {
+      headers: new HttpHeaders()
+        .set('x-access-token', localStorage.getItem('token'))
+    };
+    return this.http.post(this.apiUrl + '/media', formData, settings);
+
+  }
+
+  public getUserData() {
+    const settings = {
+      headers: new HttpHeaders().set('x-access-token', localStorage.getItem('token'))
+    };
+    return this.http.get(this.apiUrl + '/users/user', settings);
+  }
+
+  public getNewFiles() {
+    const start = 0;
+    const limit = 10;
+
+    return this.http.get(this.apiUrl + `/media?start=${start}&limit=${limit}`);
+  }
 }

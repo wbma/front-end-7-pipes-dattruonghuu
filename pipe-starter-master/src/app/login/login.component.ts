@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { MediaService } from '../services/media.service';
-import { User } from '../models/user';
+import {MediaService} from '../services/media.service';
+import {Router} from '@angular/router';
+import {HttpErrorResponse} from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -9,35 +10,14 @@ import { User } from '../models/user';
 })
 export class LoginComponent implements OnInit {
 
-  private user: User = {username: null};
-
-  constructor(private mediaService: MediaService) { }
+  constructor(public mediaService: MediaService, private router: Router) { }
 
   ngOnInit() {
-    if (localStorage.getItem('wbma_token')) {
-      // TODO: use mediaservice to validate token if found and set correct loggedIn value
-    }
-  }
-
-  /**
-   * Login form handler
-   */
-  doLogin(): void {
-    this.mediaService.login(this.user).subscribe(data => {
-      console.log(data);
-      this.mediaService.loggedIn = true;
-      localStorage.setItem('wbma_token', data.token);
-    }, error => {
+    this.mediaService.getUserData().subscribe(response => {
+      this.router.navigate(['front']);
+    }, (error: HttpErrorResponse) => {
       console.log(error);
     });
-  }
-
-  /**
-   * Logout button handler
-   */
-  logout(): void {
-    this.mediaService.loggedIn = false;
-    localStorage.removeItem('wbma_token');
   }
 
 }
